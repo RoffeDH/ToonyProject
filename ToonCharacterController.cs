@@ -1,17 +1,15 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace ToonPhysics
 {
     [RequireComponent(typeof(Rigidbody))]
-    [RequireComponent(typeof(InputController))]
+    [RequireComponent(typeof(InputManager))]
     public class ToonCharacterController : MonoBehaviour
     {
         //Components
         Rigidbody rb;
-        InputController input;
+        InputManager input;
         Camera mainCamera;
 
         [Header("Spring controls")]
@@ -24,22 +22,30 @@ namespace ToonPhysics
         [Header("Joint controls")]
         [SerializeField] float uprightSpringStrength;
         [SerializeField] float uprightSpringDamper;
-        public bool editTargetUprightRotation;
-        public Quaternion targetUprightRotation = Quaternion.Euler(Vector3.up);
+        Quaternion targetUprightRotation;
 
         [Header("Locomotion controls")]
-        [SerializeField] float fallGravity;
         [SerializeField] float maxSpeed;
-        [SerializeField] float accelleration;
+        [SerializeField] float accel;
         [SerializeField] float maxAccel;
         [SerializeField] Vector3 forceScale;
-        [SerializeField] float jumpHeight;
-        [SerializeField] float jumpForce;
         [SerializeField] AnimationCurve AccellerationFactorFromDot;
 
+        [Header("Jump/Fall control")]
+        [SerializeField] float fallGravity;
+        [SerializeField] float cayoteTime;
+        [SerializeField] float jumpForce;
+        [SerializeField] float jumpTime;
+
+        float calcJumpForce;
+        float cayoteTimeCounter;
+        float jumpBufferCounter;
         bool canJump;
+        bool isJumping;
+
+        bool isGrounded;
         float moveDisableTimer = 0;
-        Vector3 neededAccel;
+        Vector3 goalVelocity;
 
         Vector3 downDir = new Vector3(0, -1, 0);
 
@@ -47,73 +53,129 @@ namespace ToonPhysics
         void Start()
         {
             rb = GetComponent<Rigidbody>();
-            input = GetComponent<InputController>();
+            input = GetComponent<InputManager>();
             mainCamera = Camera.main;
         }
 
         private void Update()
         {
+            CalculateJumpVariables();
             CalculateUprightPosition();
         }
 
-        // Update is called once per frame
+        private void CalculateJumpVariables()
+        {
+            float timeToApex = jumpTime / 2;
+            calcJumpForce = (2 * jumpForce / timeToApex);
+        }
+
         void FixedUpdate()
         {
             SpringController();
-
-            if (editTargetUprightRotation)
-                UprightForceController();
-
+            UprightForceController();
             LocomotionController();
-            JumpController();
+            CayoteJumpController();
         }
 
-        private void JumpController()
+        //private void JumpController()
+        //{
+        //    float _modifiedGravity = 1;
+        //    if (input.IsJumpKeyPressed() && isGrounded)
+        //    {
+        //        rb.AddForce(Vector3.up * calcJumpForce, ForceMode.Impulse);
+        //    }
+        //    else if (!input.IsJumpKeyPressed() && !isGrounded)
+        //    {
+        //        _modifiedGravity = fallGravity / Time.deltaTime;
+        //        _modifiedGravity = Mathf.Clamp(_modifiedGravity, 1, fallGravity);
+        //    }
+        //    else if (isGrounded)
+        //    {
+        //        _modifiedGravity = 1;
+        //    }
+
+        //    rb.velocity += Physics.gravity * _modifiedGravity * Time.deltaTime;
+        //}
+
+        private void CayoteJumpController()
         {
+            CayoteTimeCalculator();
+            float _modifiedGravity = 1;
             if (input.IsJumpKeyPressed() && canJump)
             {
-                Vector3 _jumpForce = Vector3.up * jumpForce * Time.deltaTime;
-                rb.AddForce(_jumpForce, ForceMode.Impulse);
+                rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+                rb.AddForce(Vector3.up * calcJumpForce, ForceMode.Impulse);
             }
+            else if (!input.IsJumpKeyPressed() && !isGrounded)
+            {
+                Debug.Log("Jump");
+                _modifiedGravity = fallGravity / Time.deltaTime;
+                _modifiedGravity = Mathf.Clamp(_modifiedGravity, 1, fallGravity);
+            }
+            else if (isGrounded)
+            {
+                isJumping = false;
+                _modifiedGravity = 1;
+            }
+
+            rb.velocity += Physics.gravity * _modifiedGravity * Time.deltaTime;
+        }
+
+        private void CayoteTimeCalculator()
+        {
+            bool _jumpKeyReleased = true;
+
+            if (!isGrounded)
+                _jumpKeyReleased = input.IsJumpKeyReleased();
+
+            cayoteTimeCounter -= Time.deltaTime;
+
+            if (isGrounded)
+                cayoteTimeCounter = cayoteTime;
+
+            canJump = cayoteTimeCounter > 0 && _jumpKeyReleased && !isJumping;
+
+            if (canJump)
+            {
+                isJumping = input.IsJumpKeyPressed();
+            }
+
+            if (!isGrounded)
+                canJump = false;
         }
 
         private void LocomotionController()
         {
+            //GroundVelocity
+            Vector3 _groundVel = Vector3.zero;
+
             Vector3 _move = Vector3.zero; //m_UnitGoal;
             _move += Vector3.ProjectOnPlane(mainCamera.transform.right, transform.up).normalized * input.GetHorizontalMovementInput();
             _move += Vector3.ProjectOnPlane(mainCamera.transform.forward, transform.up).normalized * input.GetVerticalMovementInput();
+            _move = _move.normalized;
+
+            if (moveDisableTimer > 0)
+            {
+                _move = Vector3.zero;
+                moveDisableTimer -= Time.deltaTime;
+            }
 
             if (_move.magnitude > .1f)
                 transform.rotation = Quaternion.LookRotation(_move, Vector3.up);
 
-            rb.AddForce(_move * accelleration);
+            //Calculate velocity
+            float _velDot = Vector3.Dot(_move, rb.velocity);
+            float _accel = accel * AccellerationFactorFromDot.Evaluate(_velDot);
+            Vector3 _goalVel = _move * maxSpeed;
 
-            //Vector3 _targetVelocity = Vector3.zero;
+            goalVelocity = Vector3.MoveTowards(goalVelocity, _goalVel + _groundVel, _accel * Time.deltaTime);
 
-            //if (moveDisableTimer > 0)
-            //{
-            //    _move = Vector3.zero;
-            //    moveDisableTimer -= Time.deltaTime;
-            //}
+            //Actual force
+            Vector3 _neededAccel = (goalVelocity - rb.velocity) / Time.deltaTime;
 
-            //if (_move.magnitude > 1)
-            //    _move.Normalize();
+            _neededAccel = Vector3.ClampMagnitude(_neededAccel, maxAccel);
 
-            ////Vector3 unitVel = _targetVelocity.normalized;
-
-            ////float velDot = Vector3.Dot(_move, unitVel);
-
-            ////float accel = accelleration * AccellerationFactorFromDot.Evaluate(velDot);
-
-            //_targetVelocity = _move * maxSpeed;
-
-            //Vector3 _goalVel = Vector3.MoveTowards(targetVelocity, _targetVelocity, accelleration * Time.deltaTime);
-
-            //Vector3 _neededAccel = (_goalVel - rb.velocity) / Time.deltaTime;
-
-            //neededAccel = Vector3.ClampMagnitude(_neededAccel, maxAccel);
-
-            //rb.AddForce(Vector3.Scale(neededAccel * rb.mass, forceScale));
+            rb.AddForce(Vector3.Scale(_neededAccel * rb.mass, forceScale));
         }
 
         private void UprightForceController()
@@ -157,16 +219,13 @@ namespace ToonPhysics
 
                 rb.AddForce(_rayDir * _springForce);
 
-                canJump = true;
+                isGrounded = true;
 
                 Debug.DrawLine(transform.position, _rayHit.point, Color.green);
             }
             else
             {
-                if(rb.velocity.y < 0)
-                    rb.velocity += Physics.gravity * fallGravity * Time.deltaTime;
-
-                canJump = false;
+                isGrounded = false;
             }
         }
     }
