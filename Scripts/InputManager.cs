@@ -87,6 +87,7 @@ public class InputManager : MonoBehaviour
 
     public bool IsJumpKeyReleased()
     {
+        //Debug.Log("KEY IS RELEASED!");
         return jIsReleased;
     }
 

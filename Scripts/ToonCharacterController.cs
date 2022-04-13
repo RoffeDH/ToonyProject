@@ -46,6 +46,7 @@ namespace ToonPhysics
         bool isGrounded;
         float moveDisableTimer = 0;
         Vector3 goalVelocity;
+        RaycastHit rayHit;
 
         Vector3 downDir = new Vector3(0, -1, 0);
 
@@ -77,38 +78,19 @@ namespace ToonPhysics
             CayoteJumpController();
         }
 
-        //private void JumpController()
-        //{
-        //    float _modifiedGravity = 1;
-        //    if (input.IsJumpKeyPressed() && isGrounded)
-        //    {
-        //        rb.AddForce(Vector3.up * calcJumpForce, ForceMode.Impulse);
-        //    }
-        //    else if (!input.IsJumpKeyPressed() && !isGrounded)
-        //    {
-        //        _modifiedGravity = fallGravity / Time.deltaTime;
-        //        _modifiedGravity = Mathf.Clamp(_modifiedGravity, 1, fallGravity);
-        //    }
-        //    else if (isGrounded)
-        //    {
-        //        _modifiedGravity = 1;
-        //    }
-
-        //    rb.velocity += Physics.gravity * _modifiedGravity * Time.deltaTime;
-        //}
-
         private void CayoteJumpController()
         {
             CayoteTimeCalculator();
             float _modifiedGravity = 1;
-            if (input.IsJumpKeyPressed() && canJump)
+
+            if (isJumping)
             {
                 rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
                 rb.AddForce(Vector3.up * calcJumpForce, ForceMode.Impulse);
             }
-            else if (!input.IsJumpKeyPressed() && !isGrounded)
+
+            if (!input.IsJumpKeyPressed() && !isGrounded)
             {
-                Debug.Log("Jump");
                 _modifiedGravity = fallGravity / Time.deltaTime;
                 _modifiedGravity = Mathf.Clamp(_modifiedGravity, 1, fallGravity);
             }
@@ -129,18 +111,22 @@ namespace ToonPhysics
                 _jumpKeyReleased = input.IsJumpKeyReleased();
 
             cayoteTimeCounter -= Time.deltaTime;
+            jumpBufferCounter -= Time.deltaTime;
 
             if (isGrounded)
                 cayoteTimeCounter = cayoteTime;
+            else if (_jumpKeyReleased)
+                jumpBufferCounter = cayoteTime;
 
-            canJump = cayoteTimeCounter > 0 && _jumpKeyReleased && !isJumping;
+
+            canJump = (cayoteTimeCounter > 0 && _jumpKeyReleased && !isJumping) || (jumpBufferCounter > 0 && _jumpKeyReleased && !isGrounded);
 
             if (canJump)
             {
                 isJumping = input.IsJumpKeyPressed();
             }
 
-            if (!isGrounded)
+            if (!isGrounded && jumpBufferCounter < 0)
                 canJump = false;
         }
 
@@ -148,8 +134,12 @@ namespace ToonPhysics
         {
             //GroundVelocity
             Vector3 _groundVel = Vector3.zero;
+            if (rayHit.rigidbody != null)
+            {
+                _groundVel = rayHit.rigidbody.velocity;
+            }
 
-            Vector3 _move = Vector3.zero; //m_UnitGoal;
+                Vector3 _move = Vector3.zero; //m_UnitGoal;
             _move += Vector3.ProjectOnPlane(mainCamera.transform.right, transform.up).normalized * input.GetHorizontalMovementInput();
             _move += Vector3.ProjectOnPlane(mainCamera.transform.forward, transform.up).normalized * input.GetVerticalMovementInput();
             _move = _move.normalized;
@@ -206,26 +196,45 @@ namespace ToonPhysics
             RaycastHit _rayHit;
             bool _rayDidHit = Physics.Raycast(_ray, out _rayHit, springMaxLength, groundLayer);
 
+            isGrounded = Vector3.Distance(_rayHit.point, transform.position) < springTargetHeight;
+
+            Debug.DrawLine(transform.position, transform.position + downDir * springMaxLength, Color.red);
+
             if (_rayDidHit)
             {
+                rayHit = _rayHit;
+                Debug.DrawLine(transform.position, _rayHit.point, Color.green);
                 Vector3 _vel = rb.velocity;
-                Vector3 _rayDir = downDir;
+                Vector3 _rayDir = transform.TransformDirection(downDir);
+
+                Vector3 _otherVel = Vector3.zero;
+                Rigidbody _hitBody = _rayHit.rigidbody;
+                if(_hitBody != null)
+                {
+                    _otherVel = _hitBody.velocity;
+                }
 
                 float _rayDirVel = Vector3.Dot(_rayDir, _vel);
+                float _otherDirVel = Vector3.Dot(_rayDir, _otherVel);
+
+                float _relVel = _rayDirVel - _otherDirVel;
 
                 float x = _rayHit.distance - springTargetHeight;
 
-                float _springForce = (x * springStrength) - (_rayDirVel * springDamper);
+                float _springForce = (x * springStrength) - (_relVel * springDamper);
+
+                //Debug.DrawLine(transform.position, transform.position + (_rayDir * _springForce), Color.yellow);
 
                 rb.AddForce(_rayDir * _springForce);
 
-                isGrounded = true;
-
-                Debug.DrawLine(transform.position, _rayHit.point, Color.green);
+                if(_hitBody != null)
+                {
+                    _hitBody.AddForceAtPosition(_rayDir * -_springForce, _rayHit.point);
+                }
             }
             else
             {
-                isGrounded = false;
+                rayHit = new RaycastHit();
             }
         }
     }
