@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace ToonPhysics
+namespace Toony
 {
     [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(InputManager))]
@@ -30,6 +30,7 @@ namespace ToonPhysics
         [SerializeField] float maxAccel;
         [SerializeField] Vector3 forceScale;
         [SerializeField] AnimationCurve AccellerationFactorFromDot;
+        [SerializeField] float timeOutTime;
 
         [Header("Jump/Fall control")]
         [SerializeField] float fallGravity;
@@ -72,10 +73,26 @@ namespace ToonPhysics
 
         void FixedUpdate()
         {
-            SpringController();
-            UprightForceController();
-            LocomotionController();
-            CayoteJumpController();
+            if (moveDisableTimer <= 0)
+            {
+                SpringController();
+                UprightForceController();
+                LocomotionController();
+                CayoteJumpController();
+            }
+            else
+            {
+                moveDisableTimer -= Time.deltaTime;
+                rb.velocity += Physics.gravity * ModifiedGravity() * Time.deltaTime;
+            }
+        }
+
+        private float ModifiedGravity()
+        {
+            float _gravity = 0;
+            _gravity = fallGravity / Time.deltaTime;
+            _gravity = Mathf.Clamp(_gravity, 1, fallGravity);
+            return _gravity;
         }
 
         private void CayoteJumpController()
@@ -91,8 +108,7 @@ namespace ToonPhysics
 
             if (!input.IsJumpKeyPressed() && !isGrounded)
             {
-                _modifiedGravity = fallGravity / Time.deltaTime;
-                _modifiedGravity = Mathf.Clamp(_modifiedGravity, 1, fallGravity);
+                _modifiedGravity = ModifiedGravity();
             }
             else if (isGrounded)
             {
@@ -236,6 +252,12 @@ namespace ToonPhysics
             {
                 rayHit = new RaycastHit();
             }
+        }
+
+        public void PhysicsHit(/*Vector3 force*/)
+        {
+            moveDisableTimer = timeOutTime;
+            //rb.AddForce(force);
         }
     }
 }

@@ -5,9 +5,10 @@ using UnityEngine;
 public class Elevator : MonoBehaviour
 {
     Rigidbody rb;
-    [SerializeField] Vector3 startingPosition;
+    Vector3 startingPosition;
+    Vector3 targetPosition;
+
     [SerializeField] Vector3 endPosition;
-    [SerializeField] Vector3 targetPosition;
 
     // Start is called before the first frame update
     void Start()
@@ -15,7 +16,7 @@ public class Elevator : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         startingPosition = transform.position;
         endPosition = transform.position + endPosition;
-        targetPosition = startingPosition;
+        targetPosition = endPosition;
     }
 
     // Update is called once per frame

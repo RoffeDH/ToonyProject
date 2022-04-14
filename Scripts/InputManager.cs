@@ -59,8 +59,8 @@ public class InputManager : MonoBehaviour
             jIsReleased = true;
         }
     }
-    
-    public void Attacking(InputAction.CallbackContext context)
+
+    public void Action(InputAction.CallbackContext context)
     {
         a = (bool)context.ReadValueAsButton();
     }
@@ -91,7 +91,7 @@ public class InputManager : MonoBehaviour
         return jIsReleased;
     }
 
-    public bool IsAttackKeyPressed()
+    public bool IsActionKeyPressed()
     {
         return a;
     }
