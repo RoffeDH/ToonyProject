@@ -33,10 +33,10 @@ namespace Toony
 
         private void OnCollisionEnter(Collision col)
         {
-            ToonCharacterController controller = col.transform.GetComponent<ToonCharacterController>();
-            if(controller != null)
+            Locomotion locomotion = col.transform.GetComponent<Locomotion>();
+            if(locomotion != null)
             {
-                controller.PhysicsHit();
+                locomotion.PhysicsHit();
             }
 
             Vector3 _colPos = col.transform.position;
