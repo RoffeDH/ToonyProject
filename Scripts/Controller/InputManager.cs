@@ -5,15 +5,15 @@ using UnityEngine.InputSystem;
 
 namespace Toony
 {
-    public class InputManager : MonoBehaviour
+    public class ToonyInputs : MonoBehaviour
     {
 
         protected float horizontal, vertical;
-        protected bool jumpButton, actionButton, jumpButtonIsReleased;
+        protected bool jumpButton, jumpButtonIsReleased;
 
         private void Awake()
         {
-            jumpButton = actionButton = false;
+            jumpButton = false;
             jumpButtonIsReleased = true;
             horizontal = vertical = 0f;
         }
@@ -42,11 +42,6 @@ namespace Toony
                 jumpButton = false;
                 jumpButtonIsReleased = true;
             }
-        }
-
-        public void Action(InputAction.CallbackContext context)
-        {
-            actionButton = (bool)context.ReadValueAsButton();
         }
     }
 }

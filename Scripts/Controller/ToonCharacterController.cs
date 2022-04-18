@@ -3,16 +3,21 @@ using UnityEngine;
 
 namespace Toony
 {
-    public class ToonCharacterController : InputManager
+    public class ToonCharacterController : ToonyInputs
     {
         //Components
-        Camera mainCamera;
-        Locomotion locomotion;
-        Spring spring;
-        Jumping jumping;
+        protected Camera mainCamera;
+        protected Locomotion locomotion;
+        protected Spring spring;
+        protected Jumping jumping;
 
         // Start is called before the first frame update
         void Start()
+        {
+            DefineComponents();
+        }
+
+        protected void DefineComponents()
         {
             mainCamera = Camera.main;
             spring = GetComponent<Spring>();
@@ -21,6 +26,11 @@ namespace Toony
         }
 
         private void Update()
+        {
+            ToonCharacterImplementation();
+        }
+
+        protected void ToonCharacterImplementation()
         {
             spring.CalculateUprightPosition();
             Vector3 _move = Vector3.zero;

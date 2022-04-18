@@ -7,6 +7,7 @@ namespace Toony
     public class Spring : MonoBehaviour
     {
         Rigidbody rb;
+        [SerializeField] bool isItemObject;
         [SerializeField] LayerMask groundLayer;
 
         [Header("Spring controls")]
@@ -48,7 +49,7 @@ namespace Toony
             if (!_rayDidHit)
                 return;
 
-            isGrounded = Vector3.Distance(_rayHit.point, transform.position) < springTargetHeight;
+            isGrounded = Vector3.Distance(_rayHit.point, transform.position) < springTargetHeight && !_rayHit.collider.isTrigger;
 
             Debug.DrawLine(transform.position, transform.position + downDir * springMaxLength, Color.red);
 
@@ -57,6 +58,9 @@ namespace Toony
                 rayHit = _rayHit;
                 Vector3 _vel = rb.velocity;
                 Vector3 _rayDir = transform.TransformDirection(downDir);
+                if (isItemObject)
+                    _rayDir = downDir;
+
                 Debug.DrawLine(transform.position, _rayHit.point, Color.green);
 
                 Vector3 _otherVel = Vector3.zero;
@@ -121,6 +125,11 @@ namespace Toony
         public bool GetIsGrounded()
         {
             return isGrounded;
+        }
+
+        public void SetTargetHeight(float _height)
+        {
+            springTargetHeight = _height;
         }
     }
 }
