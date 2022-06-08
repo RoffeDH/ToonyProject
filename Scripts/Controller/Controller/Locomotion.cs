@@ -26,7 +26,7 @@ namespace Toony
         bool canTurn = true;
         bool canWalk = true;
         Vector3 goalVelocity;
-        LocomotionSettings currentSettings;
+        //LocomotionSettings currentSettings;
 
         // Start is called before the first frame update
         void Start()
@@ -90,20 +90,20 @@ namespace Toony
             moveDisableTimer = timeOutTime;
         }
 
-        public void ChangeLocomotionSettings(LocomotionSettings _settings)
-        {
-            if (currentSettings == _settings)
-                return;
+        //public void ChangeLocomotionSettings(LocomotionSettings _settings)
+        //{
+        //    if (currentSettings == _settings)
+        //        return;
 
-            currentSettings = _settings;
+        //    currentSettings = _settings;
 
-            rotationSpeed = currentSettings.rotationSpeed;
-            maxSpeed = currentSettings.maxSpeed;
-            accel = currentSettings.accel;
-            maxAccel = currentSettings.maxAccel;
+        //    rotationSpeed = currentSettings.rotationSpeed;
+        //    maxSpeed = currentSettings.maxSpeed;
+        //    accel = currentSettings.accel;
+        //    maxAccel = currentSettings.maxAccel;
 
-            //canRotate = currentSettings.canRotate;
-            canWalk = currentSettings.canWalk;
-    }
+        //    //canRotate = currentSettings.canRotate;
+        //    canWalk = currentSettings.canWalk;
+        //}
     }
 }

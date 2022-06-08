@@ -135,13 +135,13 @@ namespace Toony
             return springTargetHeight;
         }
 
-        public void ChangeSpringSettings(SpringSettings settings)
-        {
-            springTargetHeight = settings.targetHeight;
-            springStrength = settings.strength;
-            springDamper = settings.damper;
+        //public void ChangeSpringSettings(SpringSettings settings)
+        //{
+        //    springTargetHeight = settings.targetHeight;
+        //    springStrength = settings.strength;
+        //    springDamper = settings.damper;
 
-            uprightSpringStrength = settings.uprightStrength;
-        }
+        //    uprightSpringStrength = settings.uprightStrength;
+        //}
     }
 }
