@@ -12,6 +12,7 @@ namespace Toony
 
         [Header("Spring controls")]
         [SerializeField] float springTargetHeight;
+        float modifiedSpringTargetHeight;
         [SerializeField] float springMaxLength;
         [SerializeField] float springStrength;
         [SerializeField] float springDamper;
@@ -21,6 +22,7 @@ namespace Toony
         [SerializeField] float uprightSpringDamper;
         Quaternion targetUprightRotation;
 
+
         Vector3 downDir = new Vector3(0, -1, 0);
         RaycastHit rayHit;
         bool isGrounded;
@@ -28,6 +30,7 @@ namespace Toony
         void Start()
         {
             rb = GetComponent<Rigidbody>();
+            modifiedSpringTargetHeight = springTargetHeight;
         }
 
         private void FixedUpdate()
@@ -76,7 +79,7 @@ namespace Toony
 
                 float _relVel = _rayDirVel - _otherDirVel;
 
-                float x = _rayHit.distance - springTargetHeight;
+                float x = _rayHit.distance - modifiedSpringTargetHeight;
 
                 float _springForce = (x * springStrength) - (_relVel * springDamper);
 
@@ -95,7 +98,7 @@ namespace Toony
             }
         }
 
-        public void UprightForceController()
+        private void UprightForceController()
         {
             Quaternion currentRotation = transform.rotation;
             Quaternion goalRot = UtilsMath.ShortestRotation(targetUprightRotation, currentRotation);
@@ -127,9 +130,18 @@ namespace Toony
             return isGrounded;
         }
 
-        public void SetTargetHeight(float _height)
+        public float GetTargetHeight()
         {
-            springTargetHeight = _height;
+            return springTargetHeight;
+        }
+
+        public void ChangeSpringSettings(SpringSettings settings)
+        {
+            springTargetHeight = settings.targetHeight;
+            springStrength = settings.strength;
+            springDamper = settings.damper;
+
+            uprightSpringStrength = settings.uprightStrength;
         }
     }
 }

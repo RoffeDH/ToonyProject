@@ -11,6 +11,8 @@ namespace Toony
         Rigidbody rb;
         Spring spring;
 
+        [SerializeField] float rotationSpeed = 4f;
+
         [Header("Locomotion controls")]
         [SerializeField] float maxSpeed;
         [SerializeField] float accel;
@@ -20,8 +22,11 @@ namespace Toony
         [SerializeField] float timeOutTime;
         float moveDisableTimer;
 
-        bool canRotate = true;
+        //bool canRotate = true;
+        bool canTurn = true;
+        bool canWalk = true;
         Vector3 goalVelocity;
+        LocomotionSettings currentSettings;
 
         // Start is called before the first frame update
         void Start()
@@ -32,7 +37,9 @@ namespace Toony
 
         private void FixedUpdate()
         {
-            LocomotionController();
+            moveDisableTimer -= Time.deltaTime;
+            if(moveDisableTimer < 0)
+                LocomotionController();
         }
 
         private void LocomotionController()
@@ -40,13 +47,23 @@ namespace Toony
             //GroundVelocity
             Vector3 _groundVel = Vector3.zero;
             RaycastHit _rayHit = spring.GetRaycast();
+
             if (_rayHit.rigidbody != null)
             {
                 _groundVel = _rayHit.rigidbody.velocity;
             }
 
-            if (direction.magnitude > .1f && canRotate)
-                transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
+            if (direction.magnitude > .1f && canTurn)
+            {
+                Quaternion rotation = Quaternion.LookRotation(direction, Vector3.up);
+                ForceRotation(rotation);
+            }
+
+            if (!canWalk)
+            {
+                rb.velocity = new Vector3(0, rb.velocity.y, 0);
+                return;
+            }
 
             //Calculate velocity
             float _velDot = Vector3.Dot(direction, rb.velocity);
@@ -63,22 +80,30 @@ namespace Toony
             rb.AddForce(Vector3.Scale(_neededAccel * rb.mass, forceScale));
         }
 
-        public void OverrideLookRotation(Vector3? target = null)
+        public void ForceRotation(Quaternion _lookRotation)
         {
-            canRotate = true;
-            if (target == null)
-                return;
-
-            canRotate = false;
-            Vector3 dir = (Vector3)target - transform.position;
-            Quaternion lookRotation = Quaternion.LookRotation(dir);
-            Vector3 rotation = Quaternion.Lerp(transform.rotation, lookRotation, Time.deltaTime * 10).eulerAngles;
-            transform.rotation = Quaternion.Euler(0f, rotation.y, 0f);
+            transform.rotation = Quaternion.Slerp(transform.rotation, _lookRotation, Time.deltaTime * rotationSpeed);
         }
 
         public void PhysicsHit()
         {
             moveDisableTimer = timeOutTime;
         }
+
+        public void ChangeLocomotionSettings(LocomotionSettings _settings)
+        {
+            if (currentSettings == _settings)
+                return;
+
+            currentSettings = _settings;
+
+            rotationSpeed = currentSettings.rotationSpeed;
+            maxSpeed = currentSettings.maxSpeed;
+            accel = currentSettings.accel;
+            maxAccel = currentSettings.maxAccel;
+
+            //canRotate = currentSettings.canRotate;
+            canWalk = currentSettings.canWalk;
+    }
     }
 }

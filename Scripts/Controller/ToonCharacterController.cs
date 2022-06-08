@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Toony
 {
-    public class ToonCharacterController : ToonyInputs
+    public class ToonCharacterController : ToonyBase
     {
         //Components
         protected Camera mainCamera;
@@ -30,6 +30,11 @@ namespace Toony
             ToonCharacterImplementation();
         }
 
+        private void FixedUpdate()
+        {
+            ToonCharacterFixedImplementation();
+        }
+
         protected void ToonCharacterImplementation()
         {
             spring.CalculateUprightPosition();
@@ -38,14 +43,20 @@ namespace Toony
             _move += Vector3.ProjectOnPlane(mainCamera.transform.forward, transform.up) * vertical;
             locomotion.direction = Vector3.ClampMagnitude(_move, 1f);
 
-            jumping.JumpKeyPressed(jumpButton);
-            jumping.JumpKeyReleased(jumpButtonIsReleased);
+            if (jumping)
+            {
+                jumping.JumpKeyPressed(jumpButton);
+                jumping.JumpKeyReleased(jumpButtonIsReleased);
+            }
         }
 
-        void FixedUpdate()
+        protected void ToonCharacterFixedImplementation()
         {
-            jumping.CalculateJumpVariables();
-            jumping.CayoteJumpController();
+            if (jumping)
+            {
+                jumping.CalculateJumpVariables();
+                jumping.CayoteJumpController();
+            }
         }
     }
 }
